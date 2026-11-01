@@ -1,0 +1,10 @@
+{
+  "name": "raiol_tools",
+  "common_name": "Raiol Tools",
+  "description": "Painel visual de demonstração com registro de eventos via IPC oficial do Millennium.",
+  "version": "0.1.0",
+  "frontend": "frontend",
+  "backend": "backend",
+  "useBackend": true,
+  "backendType": "lua"
+}

@@ -1,0 +1,154 @@
+# Documento do projeto raiol_tool
+
+## Visão geral
+
+O projeto `raiol_tool` é uma ferramenta desktop para Windows, desenvolvida em WPF com .NET 8, voltada para trabalho com scripts Lua. O objetivo principal é centralizar operações úteis para quem desenvolve ou acompanha projetos em Lua, especialmente quando há integração com arquivos do Steam e necessidade de validação/checagem de scripts.
+
+A aplicação oferece:
+- editor de arquivos Lua com destaque de sintaxe;
+- validação básica e avançada de código Lua;
+- formatação com StyLua;
+- execução de scripts Lua com o runtime local;
+- leitura de inventário e manifestos da Steam;
+- verificação de hashes SHA-256 de backups e diretórios.
+
+## O que o software faz
+
+### 1) Editor Lua
+A interface principal é uma janela WPF com:
+- painel de arquivos do projeto;
+- editor de texto com número de linhas;
+- área de saída/console;
+- botões para abrir, salvar, validar, formatar e executar scripts.
+
+A edição permite:
+- criar arquivos novos;
+- abrir arquivos `.lua` individuais;
+- abrir uma pasta de projeto e listar automaticamente arquivos Lua;
+- detectar alterações não salvas antes de trocar de arquivo ou projeto;
+- manter o título da janela indicando quando o arquivo está alterado.
+
+### 2) Validação de sintaxe Lua
+O sistema usa a classe `LuaSyntaxValidator` para validar o código:
+- quando `luac.exe` está configurado, executa `luac -p` em um arquivo temporário e usa o resultado real da ferramenta Lua;
+- quando não há `luac.exe`, faz uma checagem lexical básica no próprio código para detectar problemas comuns como:
+  - delimitadores abertos ou não fechados;
+  - strings não terminadas;
+  - comentários longos incompletos;
+  - quebras de linha dentro de strings.
+
+Essa checagem não substitui o parser Lua completo, mas funciona como validação rápida e offline.
+
+### 3) Formatação com StyLua
+A aplicação permite selecionar o executável `stylua.exe` e formatar o conteúdo atual do editor. O comando é executado com `--stdin-filepath`, permitindo que a formatação leve em conta o caminho do arquivo alvo.
+
+### 4) Execução do script Lua
+Com `lua.exe` configurado, o usuário pode executar o script atual. O app:
+- salva o arquivo antes da execução;
+- chama o executável do Lua com o caminho do arquivo;
+- mostra a saída no painel de logs;
+- permite interromper a execução com o botão “Parar”.
+
+### 5) Inventário da Steam
+A app também inclui leitura de dados de instalação da Steam por meio do serviço `SteamInventoryService`.
+
+Ele:
+- procura diretórios conhecidos de bibliotecas Steam (`steamapps`);
+- lê `libraryfolders.vdf` para descobrir outras bibliotecas;
+- percorre manifestos `appmanifest_*.acf`;
+- extrai dados relevantes como:
+  - `appid`;
+  - `name`;
+  - `installdir`;
+  - `SizeOnDisk`;
+  - caminho real da instalação;
+  - validade da pasta de instalação.
+
+Há também suporte para parser VDF (`VdfParser`) e leitura de estruturas do formato Valve KeyValues.
+
+### 6) Verificação de backup via hash SHA-256
+O serviço `BackupHashService` percorre um diretório, calcula o hash SHA-256 de cada arquivo e gera um relatório com:
+- caminho relativo;
+- tamanho em bytes;
+- hash do arquivo;
+- avisos sobre arquivos com problemas de leitura ou links ignorados.
+
+Isso é útil para comparar backups ou verificar integridade de cópias de arquivos.
+
+## Arquitetura do projeto
+
+### Estrutura principal
+- `MainWindow.xaml` — interface visual da aplicação.
+- `MainWindow.xaml.cs` — lógica da janela principal, eventos dos botões e fluxo principal.
+- `App.xaml` / `App.xaml.cs` — bootstrap da aplicação WPF.
+- `Services/` — camada de serviços reutilizáveis.
+- `tests/raioltool.Tests/` — testes automatizados.
+
+### Serviços importantes
+
+#### `LuaToolSettings` e `LuaToolSettingsService`
+Guardam as configurações dos executáveis da ferramenta em `%AppData%\RaiolTool\settings.json`.
+
+#### `ExternalToolService`
+Executa programas externos de forma segura, obtendo:
+- `ExitCode`;
+- `StandardOutput`;
+- `StandardError`;
+- suporte a redirecionamento de stdin para formatadores.
+
+#### `LuaSyntaxValidator`
+Valida o código Lua por meio de:
+- `luac` real, quando disponível;
+- verificação léxica básica, como fallback.
+
+#### `SteamInventoryService`
+Lê e interpreta dados da Steam, com foco em leitura e análise de manifests locais.
+
+#### `VdfParser`
+Analisa arquivos VDF/KeyValues do tipo usado pela Steam.
+
+#### `BackupHashService`
+Calcula hashes SHA-256 e produz relatórios de integridade.
+
+#### `SteamManifestInjector`
+Função utilitária para gerar um manifesto `.acf` em estrutura do Steam. Embora exista no projeto, o foco principal do app é leitura/análise, e não modificação indiscriminada de dados do sistema.
+
+## Configuração dos executáveis
+
+A ferramenta permite selecionar os programas locais a partir da interface:
+- `lua.exe`
+- `luac.exe`
+- `stylua.exe`
+
+Esses caminhos são gravados em um arquivo de configuração do usuário e reutilizados em execuções futuras.
+
+## Fluxo típico de uso
+
+1. O usuário abre o projeto ou um arquivo `.lua`.
+2. Escreve ou edita o script.
+3. Pode:
+   - validar a sintaxe;
+   - formatar com StyLua;
+   - executar em Lua;
+   - consultar o inventário Steam;
+   - verificar hashes de um backup.
+4. O painel de saída registra mensagens e erros.
+
+## Observações importantes
+
+- O app é voltado para Windows e usa WPF.
+- Ele depende de executáveis externos instalados localmente, não os instala automaticamente.
+- O inventário da Steam é apenas leitura; ele não altera manifestos ou bibliotecas de jogos.
+- O sistema trata uma parte do funcionamento como ferramenta utilitária de diagnóstico e organização, especialmente para scripts Lua e backups.
+
+## Tecnologias usadas
+
+- .NET 8
+- WPF
+- AvalonEdit para editor de texto com realce de sintaxe
+- C#
+- Testes xUnit
+
+## Conclusão
+
+`raiol_tool` é uma ferramenta desktop para auxiliar no desenvolvimento, análise e validação de scripts Lua, com recursos extras para consulta de instalações Steam e verificação de integridade de backups. Ele combina editor, ferramentas externas e relatórios em um único painel desktop, servindo como utilitário prático para quem trabalha com Lua no ambiente Windows.

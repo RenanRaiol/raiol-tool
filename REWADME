@@ -1,0 +1,111 @@
+# raiol_tool — documentação do projeto
+
+## Objetivo e limites
+
+Aplicativo desktop para Windows, feito em WPF e .NET 8. O projeto oferece ferramentas locais para
+edição de Lua e inspeção somente leitura de bibliotecas Steam e arquivos VDF/ACF existentes.
+
+O inventário não cria, edita, renomeia nem apaga arquivos `.acf` ou outros arquivos da Steam. Não
+solicita nem transmite IDs de jogos a um serviço local/externo, não injeta código em processos e não
+altera licenças, propriedade, depots ou estado de instalação. O relatório de backup é escrito apenas
+no caminho de saída escolhido pelo usuário.
+
+## Funções implementadas
+
+### Editor Lua
+
+- Criar, abrir, editar e salvar arquivos `.lua`.
+- Abrir um diretório de projeto e listar arquivos Lua.
+- Realce de sintaxe e numeração de linhas por AvalonEdit.
+- Validar com `luac -p` quando um `luac.exe` local é configurado. Sem ele, a validação é somente uma
+  checagem lexical de delimitadores, strings e comentários — não um parser completo da linguagem.
+- Formatar com StyLua e executar scripts com `lua.exe` local, somente quando acionados pelo usuário.
+- Os caminhos dos executáveis Lua são guardados em
+  `%AppData%\RaiolTool\settings.json`. O aplicativo não baixa esses executáveis.
+
+### Parser VDF
+
+`Services/VdfParser.cs` lê documentos KeyValues/VDF sem executar conteúdo. O parser mantém a ordem e
+entradas repetidas, trata objetos aninhados, comentários `//`, valores entre aspas e escapes comuns.
+Erros de sintaxe incluem linha e coluna. Não existe função de serialização nem de escrita VDF.
+
+### Inventário Steam somente leitura
+
+`Services/SteamInventoryService.cs`:
+
+1. Procura a instalação da Steam nos locais de registro usuais e em diretórios padrão.
+2. Lê `steamapps/libraryfolders.vdf` para localizar bibliotecas adicionais.
+3. Procura `appmanifest_*.acf` nas pastas `steamapps` encontradas.
+4. Lê somente os campos necessários para o inventário: `appid`, `name`, `installdir` e
+   `SizeOnDisk`.
+5. Informa se a pasta correspondente existe dentro de `steamapps/common`.
+6. Ignora links simbólicos/reparse points em manifestos e aplica limite de tamanho de leitura.
+7. Exibe avisos para arquivos inacessíveis, malformados ou com valores incoerentes.
+
+O botão **Inventário Steam (leitura)** mostra os resultados na janela. Ele não valida nem infere
+licenças e não usa `StateFlags` para declarar propriedade ou contornar verificações da Steam.
+
+### Verificação de backup
+
+`Services/BackupHashService.cs` percorre a pasta escolhida sem escrever nos arquivos e calcula
+SHA-256, tamanho e caminho relativo de cada arquivo regular. Links/reparse points são ignorados para
+evitar seguir conteúdo fora da pasta. Arquivos inacessíveis são reportados como avisos.
+
+O botão **Verificar backup (SHA-256)** exibe uma amostra dos resultados e oferece salvar o inventário
+completo em JSON em um local escolhido pelo usuário. O relatório contém caminho da raiz, horário UTC,
+caminho relativo, tamanho e hash de cada arquivo.
+
+### Sandbox de análise
+
+`analysis/LuaTools-Isolated.wsb` configura o Windows Sandbox para iniciar uma cópia autocontida do
+LuaTools analisado anteriormente. A rede está habilitada nessa configuração, a área de transferência
+está desativada e a pasta montada é somente leitura. Essa configuração é independente do inventário
+Steam do Raiol Tool.
+
+## Estrutura
+
+| Caminho | Conteúdo |
+|---|---|
+| `MainWindow.xaml` | Interface WPF do editor e ações de inventário |
+| `MainWindow.xaml.cs` | Fluxos da interface |
+| `Services/VdfParser.cs` | Parser VDF de leitura |
+| `Services/SteamInventoryService.cs` | Descoberta de bibliotecas e leitura de manifestos existentes |
+| `Services/BackupHashService.cs` | Hashes SHA-256 somente leitura |
+| `Services/LuaSyntaxValidator.cs` | `luac -p` ou checagem lexical limitada |
+| `Services/ExternalToolService.cs` | Execução controlada de ferramentas locais escolhidas pelo usuário |
+| `Services/LuaToolSettings.cs` | Configurações locais dos caminhos Lua |
+| `Syntax/Lua.xshd` | Definição de realce Lua do AvalonEdit |
+| `tests/raioltool.Tests/` | Testes unitários do parser, inventário, hashes e realce |
+| `analysis/` | Configuração e saída de análise do LuaTools no Sandbox |
+
+## Dependências
+
+- Windows com suporte a WPF.
+- .NET 8 SDK para compilar e executar em desenvolvimento.
+- NuGet `AvalonEdit` versão `6.3.1.120` para o editor com realce.
+- xUnit e Microsoft.NET.Test.Sdk para testes.
+- Opcional: `lua.exe`, `luac.exe` e `stylua.exe` fornecidos/configurados pelo usuário.
+- Opcional: Windows Sandbox, se disponível no Windows, para a análise isolada descrita acima.
+
+## Compilar, executar e testar
+
+No PowerShell:
+
+```powershell
+dotnet build E:\raioltool\raioltool.csproj
+dotnet run --project E:\raioltool\raioltool.csproj
+dotnet test E:\raioltool\tests\raioltool.Tests\raioltool.Tests.csproj
+```
+
+Os testes usam arquivos temporários locais e os removem ao terminar. Eles verificam escapes e
+estrutura VDF, leitura de bibliotecas, rejeição de caminho de instalação fora de `common`, hashes
+conhecidos e integridade do arquivo submetido ao hash.
+
+## Uso do inventário
+
+1. Inicie o Raiol Tool.
+2. Clique em **Inventário Steam (leitura)** para listar bibliotecas e manifestos já existentes.
+3. Clique em **Verificar backup (SHA-256)** e escolha uma pasta de backup para gerar hashes.
+4. Se desejar, salve o relatório JSON em uma localização separada.
+
+Não execute o Raiol Tool como administrador: as funções descritas não precisam de elevação.

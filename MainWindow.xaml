@@ -1,0 +1,84 @@
+﻿<Window x:Class="raioltool.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:local="clr-namespace:raioltool"
+        xmlns:avalonedit="http://icsharpcode.net/sharpdevelop/avalonedit"
+        mc:Ignorable="d"
+        Title="raiol_tool" Height="780" Width="1200"
+        MinHeight="600" MinWidth="900"
+        Background="#17191F" Foreground="#E6E8EE">
+    <DockPanel>
+        <Border DockPanel.Dock="Top" Background="#20232B" Padding="12">
+            <DockPanel LastChildFill="True">
+                <StackPanel DockPanel.Dock="Right" Orientation="Horizontal">
+                    <Button Content="Validar" Click="Validate_Click" Margin="4,0" Padding="12,7" />
+                    <Button Content="Formatar (StyLua)" Click="Format_Click" Margin="4,0" Padding="12,7" />
+                    <Button Content="Executar Lua" Click="Run_Click" Margin="4,0" Padding="12,7" />
+                    <Button Content="Parar" Click="Stop_Click" Margin="4,0" Padding="12,7" />
+                    <Button Content="Ferramentas..." Click="ConfigureTools_Click" Margin="4,0" Padding="12,7" />
+                </StackPanel>
+                <StackPanel Orientation="Horizontal">
+                    <Button Content="Novo" Click="NewFile_Click" Margin="0,0,8,0" Padding="12,7" />
+                    <Button Content="Abrir pasta" Click="OpenProject_Click" Margin="0,0,8,0" Padding="12,7" />
+                    <Button Content="Abrir arquivo" Click="OpenFile_Click" Margin="0,0,8,0" Padding="12,7" />
+                    <Button Content="Salvar" Click="Save_Click" Margin="0,0,12,0" Padding="12,7" />
+                    <Button Content="Inventário Steam (leitura)" Click="SteamInventory_Click" Margin="0,0,8,0" Padding="12,7" />
+                    <Button Content="Verificar backup (SHA-256)" Click="BackupHash_Click" Margin="0,0,12,0" Padding="12,7" />
+                    <TextBlock x:Name="ProjectLabel" VerticalAlignment="Center"
+                               Foreground="#AAB2C0" Text="Nenhum projeto aberto" />
+                </StackPanel>
+            </DockPanel>
+        </Border>
+
+        <Border DockPanel.Dock="Bottom" Background="#20232B" Padding="10">
+            <DockPanel>
+                <TextBlock x:Name="StatusLabel" DockPanel.Dock="Top" Margin="0,0,0,6"
+                           Foreground="#9CDCFE" Text="Pronto" />
+                <TextBox x:Name="OutputBox" Height="150" IsReadOnly="True"
+                         AcceptsReturn="True" TextWrapping="NoWrap"
+                         VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Auto"
+                         Background="#121419" Foreground="#D4D4D4" BorderThickness="0"
+                         FontFamily="Consolas" FontSize="12" />
+            </DockPanel>
+        </Border>
+
+        <Grid>
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="260" />
+                <ColumnDefinition Width="5" />
+                <ColumnDefinition Width="*" />
+            </Grid.ColumnDefinitions>
+
+            <Border Grid.Column="0" Background="#1D2027" Padding="8">
+                <DockPanel>
+                    <TextBlock DockPanel.Dock="Top" Text="ARQUIVOS LUA"
+                               FontWeight="SemiBold" Foreground="#AAB2C0" Margin="4,4,4,10" />
+                    <ListBox x:Name="ProjectFiles" SelectionChanged="ProjectFiles_SelectionChanged"
+                             Background="Transparent" BorderThickness="0"
+                             Foreground="#E6E8EE" ScrollViewer.HorizontalScrollBarVisibility="Auto">
+                        <ListBox.ItemContainerStyle>
+                            <Style TargetType="ListBoxItem">
+                                <Setter Property="Padding" Value="6,5" />
+                                <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+                            </Style>
+                        </ListBox.ItemContainerStyle>
+                    </ListBox>
+                </DockPanel>
+            </Border>
+
+            <GridSplitter Grid.Column="1" Width="5" HorizontalAlignment="Stretch"
+                          Background="#30343D" />
+
+            <Border Grid.Column="2" Background="#17191F" Padding="4">
+                <avalonedit:TextEditor x:Name="Editor" ShowLineNumbers="True"
+                                       FontFamily="Consolas" FontSize="14"
+                                       Foreground="#D4D4D4" Background="#17191F"
+                                       Padding="8" WordWrap="False"
+                                       HorizontalScrollBarVisibility="Auto"
+                                       VerticalScrollBarVisibility="Auto" />
+            </Border>
+        </Grid>
+    </DockPanel>
+</Window>
